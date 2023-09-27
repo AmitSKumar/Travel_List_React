@@ -2,6 +2,7 @@ import { useState } from "react";
 
 export default function App() {
   const [items, setItems] = useState([]);
+
   function handleAddItem(item) {
     setItems((items) => [...items, item]);
   }
@@ -17,6 +18,11 @@ export default function App() {
       )
     );
   }
+  function handleClearItem() {
+    // ask user to confirm below method retur true or false
+    const confirmed = window.confirm("Are you sure you want to delete items");
+    if (confirmed) setItems([]);
+  }
   return (
     <div className="app">
       <Logo />
@@ -25,8 +31,9 @@ export default function App() {
         items={items}
         onDeleteItem={handleDeleteItems}
         OnToggleItem={handleToggleItem}
+        onClearItem={handleClearItem}
       />
-      <Stats />
+      <Stats items={items} />
     </div>
   );
 }
@@ -71,11 +78,24 @@ function Form({ OnAddItems }) {
     </form>
   );
 }
-function PackingList({ items, onDeleteItem, OnToggleItem }) {
+function PackingList({ items, onDeleteItem, OnToggleItem, onClearItem }) {
+  const [sortBy, setSortby] = useState("packed");
+  let sortedItems;
+  if (sortBy === "input") sortedItems = items;
+  if (sortBy === "description") {
+    sortedItems = items
+      .slice()
+      .sort((a, b) => a.description.localeCompare(b.description));
+  }
+  if (sortBy === "packed") {
+    sortedItems = items
+      .slice()
+      .sort((a, b) => Number(a.packed) - Number(b.packed));
+  }
   return (
     <div className="list">
       <ul>
-        {items.map((item) => (
+        {sortedItems.map((item) => (
           <Item
             item={item}
             onDeleteItem={onDeleteItem}
@@ -84,6 +104,14 @@ function PackingList({ items, onDeleteItem, OnToggleItem }) {
           />
         ))}
       </ul>
+      <div className="actions">
+        <select value={sortBy} onChange={(e) => setSortby(e.target.value)}>
+          <option value="input">Sort by input order</option>
+          <option value="description">Sort by description</option>
+          <option value="packed">Sort by packed status</option>
+        </select>
+        <button onClick={() => onClearItem()}>Clear List</button>
+      </div>
     </div>
   );
 }
@@ -102,10 +130,25 @@ function Item({ item, onDeleteItem, OnToggleItem }) {
     </li>
   );
 }
-function Stats() {
+function Stats({ items }) {
+  //early return if no items
+  if (!items.length)
+    return (
+      <p className="stats">
+        <em>Start packing list to your packing list</em>
+      </p>
+    );
+  const numItems = items.length;
+  const numPacked = items.filter((item) => item.packed).length;
+  const percentage = Math.round((numPacked / numItems) * 100);
   return (
     <footer className="stats">
-      <em>👜You have X items in your list ,and you alredy packed X (X%)</em>
+      <em>
+        {percentage === 100
+          ? "You got everything ! Reaady to go ✈"
+          : `👜You have ${numItems} items in your list ,and you alredy packed ${" "}
+        ${numPacked} (${percentage} %)`}
+      </em>
     </footer>
   );
 }
